@@ -5,6 +5,7 @@ import { Class } from '../Class';
 import { OnInitialize, OnPreUpdate, OnPostUpdate } from '../Interfaces/LifecycleEvents';
 import { Engine } from '../Engine';
 import { InitializeEvent, PreUpdateEvent, PostUpdateEvent } from '../Events';
+import { Emitter } from '../EventEmitter';
 
 export interface EntityComponent {
   component: Component;
@@ -45,8 +46,17 @@ export type ExcludeType<TypeUnion, TypeNameOrType> = TypeNameOrType extends stri
   ? Exclude<TypeUnion, Component<TypeNameOrType>>
   : Exclude<TypeUnion, TypeNameOrType>;
 
+
+export type EntityEvents = {
+  'initialize': InitializeEvent,
+  'preupdate': PreUpdateEvent,
+  'postupdate': PostUpdateEvent
+};
+
 export class Entity<KnownComponents extends Component = never> extends Class implements OnInitialize, OnPreUpdate, OnPostUpdate {
   private static _ID = 0;
+
+  public events: Emitter<EntityEvents>;
 
   /**
    * The unique identifier for the entity
@@ -225,6 +235,7 @@ export class Entity<KnownComponents extends Component = never> extends Class imp
     if (!this.isInitialized) {
       this.onInitialize(engine);
       super.emit('initialize', new InitializeEvent(engine, this));
+      this.events.emit('initialize', new InitializeEvent(engine, this));
       this._isInitialized = true;
     }
   }
