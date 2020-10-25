@@ -39,7 +39,7 @@ export class TileMapImpl extends Class {
   }
 
   /**
-   * @param x             The x coordinate to anchor the TileMap's upper left corner (should not be changed once set)
+   * @param xOrConfig     The x coordinate to anchor the TileMap's upper left corner (should not be changed once set) or TileMap option bag
    * @param y             The y coordinate to anchor the TileMap's upper left corner (should not be changed once set)
    * @param cellWidth     The individual width of each cell (in pixels) (should not be changed once set)
    * @param cellHeight    The individual height of each cell (in pixels) (should not be changed once set)
@@ -265,9 +265,6 @@ export class TileMapImpl extends Class {
   }
 }
 
-/**
- * [[include:Constructors.md]]
- */
 export interface TileMapArgs extends Partial<TileMapImpl> {
   x: number;
   y: number;
@@ -280,8 +277,6 @@ export interface TileMapArgs extends Partial<TileMapImpl> {
 /**
  * The [[TileMap]] class provides a lightweight way to do large complex scenes with collision
  * without the overhead of actors.
- *
- * [[include:TileMaps.md]]
  */
 export class TileMap extends Configurable(TileMapImpl) {
   constructor(config: TileMapArgs);
@@ -316,7 +311,7 @@ export class CellImpl {
   public sprites: TileSprite[] = [];
 
   /**
-   * @param x       Gets or sets x coordinate of the cell in world coordinates
+   * @param xOrConfig Gets or sets x coordinate of the cell in world coordinates or cell option bag
    * @param y       Gets or sets y coordinate of the cell in world coordinates
    * @param width   Gets or sets the width of the cell
    * @param height  Gets or sets the height of the cell
@@ -384,9 +379,6 @@ export class CellImpl {
   }
 }
 
-/**
- * [[include:Constructors.md]]
- */
 export interface CellArgs extends Partial<CellImpl> {
   x: number;
   y: number;

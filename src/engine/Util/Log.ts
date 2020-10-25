@@ -14,21 +14,19 @@ export enum LogLevel {
  * Static singleton that represents the logging facility for Excalibur.
  * Excalibur comes built-in with a [[ConsoleAppender]] and [[ScreenAppender]].
  * Derive from [[Appender]] to create your own logging appenders.
- *
- * [[include:Logger.md]]
  */
 export class Logger {
-  private static _instance: Logger = null;
+  private static _INSTANCE: Logger = null;
   private _appenders: Appender[] = [];
 
   constructor() {
-    if (Logger._instance) {
+    if (Logger._INSTANCE) {
       throw new Error('Logger is a singleton');
     }
-    Logger._instance = this;
+    Logger._INSTANCE = this;
     // Default console appender
-    Logger._instance.addAppender(new ConsoleAppender());
-    return Logger._instance;
+    Logger._INSTANCE.addAppender(new ConsoleAppender());
+    return Logger._INSTANCE;
   }
 
   /**
@@ -41,10 +39,10 @@ export class Logger {
    * Gets the current static instance of Logger
    */
   public static getInstance(): Logger {
-    if (Logger._instance == null) {
-      Logger._instance = new Logger();
+    if (Logger._INSTANCE == null) {
+      Logger._INSTANCE = new Logger();
     }
-    return Logger._instance;
+    return Logger._INSTANCE;
   }
 
   /**

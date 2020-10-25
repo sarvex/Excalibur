@@ -4,8 +4,6 @@ import { obsolete } from '../Util/Decorators';
  * Provides standard colors (e.g. [[Color.Black]])
  * but you can also create custom colors using RGB, HSL, or Hex. Also provides
  * useful color operations like [[Color.lighten]], [[Color.darken]], and more.
- *
- * [[include:Colors.md]]
  */
 export class Color {
   /**
@@ -63,6 +61,28 @@ export class Color {
    */
   public static fromRGB(r: number, g: number, b: number, a?: number): Color {
     return new Color(r, g, b, a);
+  }
+
+  /**
+   * Creates a new instance of Color from a rgb string
+   *
+   * @param string  CSS color string of the form rgba(255, 255, 255, 1) or rgb(255, 255, 255)
+   */
+  public static fromRGBString(string: string): Color {
+    const rgbaRegEx: RegExp = /^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d+(?:\.\d+)?))?\)/i;
+    let match = null;
+    if ((match = string.match(rgbaRegEx))) {
+      const r = parseInt(match[1], 10);
+      const g = parseInt(match[2], 10);
+      const b = parseInt(match[3], 10);
+      let a = 1;
+      if (match[4]) {
+        a = parseFloat(match[4]);
+      }
+      return new Color(r, g, b, a);
+    } else {
+      throw new Error('Invalid rgb/a string: ' + string);
+    }
   }
 
   /**

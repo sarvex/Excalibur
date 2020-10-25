@@ -1,4 +1,5 @@
 import { EX_VERSION } from './';
+import { Flags } from './Flags';
 import { polyfill } from './Polyfill';
 polyfill();
 import { CanUpdate, CanDraw, CanInitialize } from './Interfaces/LifecycleEvents';
@@ -166,8 +167,6 @@ export interface EngineOptions {
  * The [[Engine]] is the main driver for a game. It is responsible for
  * starting/stopping the game, maintaining state, transmitting events,
  * loading resources, and managing the scene.
- *
- * [[include:Engine.md]]
  */
 export class Engine extends Class implements CanInitialize, CanUpdate, CanDraw {
   /**
@@ -335,7 +334,10 @@ export class Engine extends Class implements CanInitialize, CanUpdate, CanDraw {
   /**
    * Indicates whether the engine should draw with debug information
    */
-  public isDebug: boolean = false;
+  private _isDebug: boolean = false;
+  public get isDebug(): boolean {
+    return this._isDebug;
+  }
   public debugColor: Color = new Color(255, 255, 255);
   /**
    * Sets the background color for the engine.
@@ -426,7 +428,7 @@ export class Engine extends Class implements CanInitialize, CanUpdate, CanDraw {
   /**
    * Default [[EngineOptions]]
    */
-  private static _DefaultEngineOptions: EngineOptions = {
+  private static _DEFAULT_ENGINE_OPTIONS: EngineOptions = {
     width: 0,
     height: 0,
     enableCanvasTransparency: true,
@@ -468,7 +470,9 @@ export class Engine extends Class implements CanInitialize, CanUpdate, CanDraw {
   constructor(options?: EngineOptions) {
     super();
 
-    options = { ...Engine._DefaultEngineOptions, ...options };
+    options = { ...Engine._DEFAULT_ENGINE_OPTIONS, ...options };
+
+    Flags.freeze();
 
     // Initialize browser events facade
     this.browser = new BrowserEvents(window, document);
@@ -1103,6 +1107,22 @@ O|===|* >________________>\n\
 
   public onPostDraw(_ctx: CanvasRenderingContext2D, _delta: number) {
     // Override me
+  }
+
+  /**
+   * Enable or disable Excalibur debugging functionality.
+   * @param toggle a value that debug drawing will be changed to
+   */
+  public showDebug(toggle: boolean): void {
+    this._isDebug = toggle;
+  }
+
+  /**
+   * Toggle Excalibur debugging functionality.
+   */
+  public toggleDebug(): boolean {
+    this._isDebug = !this._isDebug;
+    return this._isDebug;
   }
 
   /**

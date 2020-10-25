@@ -54,7 +54,7 @@ export class SpriteImpl implements Drawable {
   private _dirtyEffect: boolean = false;
 
   /**
-   * @param image   The backing image texture to build the Sprite
+   * @param imageOrConfig  The backing image texture to build the Sprite, or Sprite option bag
    * @param x      The x position of the sprite
    * @param y      The y position of the sprite
    * @param width  The width of the sprite in pixels
@@ -400,9 +400,6 @@ export class SpriteImpl implements Drawable {
   }
 }
 
-/**
- * [[include:Constructors.md]]
- */
 export interface SpriteArgs extends Partial<SpriteImpl> {
   image?: Texture;
   x?: number;
@@ -418,8 +415,6 @@ export interface SpriteArgs extends Partial<SpriteImpl> {
 /**
  * A [[Sprite]] is one of the main drawing primitives. It is responsible for drawing
  * images or parts of images from a [[Texture]] resource to the screen.
- *
- * [[include:Sprites.md]]
  */
 export class Sprite extends Configurable(SpriteImpl) {
   constructor(config: SpriteArgs);

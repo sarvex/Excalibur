@@ -21,7 +21,7 @@ export class SpriteSheetImpl {
   public spHeight: number = 0;
   public spacing: number = 0;
   /**
-   * @param image     The backing image texture to build the SpriteSheet
+   * @param imageOrConfigOrSprites The backing image texture to build the SpriteSheet, option bag, or sprite list
    * @param columns   The number of columns in the image texture
    * @param rows      The number of rows in the image texture
    * @param spWidth   The width of each individual sprite in pixels
@@ -188,9 +188,6 @@ export class SpriteSheetImpl {
   }
 }
 
-/**
- * [[include:Constructors.md]]
- */
 export interface SpriteSheetArgs extends Partial<SpriteSheetImpl> {
   image: Texture;
   sprites?: Sprite[];
@@ -205,8 +202,6 @@ export interface SpriteSheetArgs extends Partial<SpriteSheetImpl> {
  * Sprite sheets are a useful mechanism for slicing up image resources into
  * separate sprites or for generating in game animations. [[Sprite|Sprites]] are organized
  * in row major order in the [[SpriteSheet]].
- *
- * [[include:SpriteSheets.md]]
  */
 export class SpriteSheet extends Configurable(SpriteSheetImpl) {
   constructor(config: SpriteSheetArgs);
@@ -240,7 +235,7 @@ export class SpriteFontImpl extends SpriteSheet {
   private _caseInsensitive: boolean;
 
   /**
-   * @param image           The backing image texture to build the SpriteFont
+   * @param imageOrConfig   The backing image texture to build the SpriteFont or the sprite font option bag
    * @param alphabet        A string representing all the characters in the image, in row major order.
    * @param caseInsensitive  Indicate whether this font takes case into account
    * @param columns         The number of columns of characters in the image
@@ -430,9 +425,6 @@ export interface SpriteFontOptions {
   maxWidth?: number;
 }
 
-/**
- * [[include:Constructors.md]]
- */
 export interface SpriteFontArgs extends SpriteSheetArgs {
   image: Texture;
   columns: number;
@@ -447,8 +439,6 @@ export interface SpriteFontArgs extends SpriteSheetArgs {
  * Sprite fonts are a used in conjunction with a [[Label]] to specify
  * a particular bitmap as a font. Note that some font features are not
  * supported by Sprite fonts.
- *
- * [[include:SpriteFonts.md]]
  */
 export class SpriteFont extends Configurable(SpriteFontImpl) {
   constructor(config: SpriteFontArgs);

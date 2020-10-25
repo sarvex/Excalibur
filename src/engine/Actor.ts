@@ -48,13 +48,14 @@ import { Shape } from './Collision/Shape';
 
 import { Entity } from './EntityComponentSystem/Entity';
 
+/**
+ * Type guard for checking if something is an Actor
+ * @param x
+ */
 export function isActor(x: any): x is Actor {
   return x instanceof Actor;
 }
 
-/**
- * [[include:Constructors.md]]
- */
 export interface ActorArgs extends Partial<ActorImpl> {
   x?: number;
   y?: number;
@@ -450,11 +451,11 @@ export class ActorImpl extends Entity implements Actionable, Eventable, PointerE
   // #endregion
 
   /**
-   * @param x       The starting x coordinate of the actor
-   * @param y       The starting y coordinate of the actor
-   * @param width   The starting width of the actor
-   * @param height  The starting height of the actor
-   * @param color   The starting color of the actor. Leave null to draw a transparent actor. The opacity of the color will be used as the
+   * @param xOrConfig The starting x coordinate of the actor, or an option bag of [[ActorArgs]]
+   * @param y         The starting y coordinate of the actor
+   * @param width     The starting width of the actor
+   * @param height    The starting height of the actor
+   * @param color     The starting color of the actor. Leave null to draw a transparent actor. The opacity of the color will be used as the
    * initial [[opacity]].
    */
   constructor(xOrConfig?: number | ActorArgs, y?: number, width?: number, height?: number, color?: Color) {
@@ -973,9 +974,10 @@ export class ActorImpl extends Entity implements Actionable, Eventable, PointerE
    * @param newIndex new z-index to assign
    */
   public setZIndex(newIndex: number) {
-    this.scene.cleanupDrawTree(this);
-    this._zIndex = newIndex;
-    this.scene.updateDrawTree(this);
+    const newZ = newIndex;
+    this.scene?.cleanupDrawTree(this);
+    this._zIndex = newZ;
+    this.scene?.updateDrawTree(this);
   }
 
   /**
@@ -1228,7 +1230,7 @@ export class ActorImpl extends Entity implements Actionable, Eventable, PointerE
       this.currentDrawing.draw({ ctx, x: offsetX, y: offsetY, opacity: this.opacity });
     } else {
       if (this.color && this.body && this.body.collider && this.body.collider.shape) {
-        this.body.collider.shape.draw(ctx, this.color, new Vector(this.width * this.anchor.x, this.height * this.anchor.y));
+        this.body.collider.shape.draw(ctx, this.color, new Vector(0, 0));
       }
     }
     ctx.restore();
@@ -1374,12 +1376,6 @@ export class ActorImpl extends Entity implements Actionable, Eventable, PointerE
  * can move on the screen, collide with another `Actor`, respond to events,
  * or interact with the current scene, must be an actor. An `Actor` **must**
  * be part of a [[Scene]] for it to be drawn to the screen.
- *
- * [[include:Actors.md]]
- *
- *
- * [[include:Constructors.md]]
- *
  */
 export class Actor extends Configurable(ActorImpl) {
   constructor();

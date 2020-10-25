@@ -105,9 +105,6 @@ export enum FontStyle {
   Oblique
 }
 
-/**
- * [[include:Constructors.md]]
- */
 export interface LabelArgs extends Partial<LabelImpl> {
   x?: number;
   y?: number;
@@ -193,10 +190,10 @@ export class LabelImpl extends Actor {
   private _shadowOffsetY: number;
 
   /**
-   * @param text        The text of the label
+   * @param textOrConfig    The text of the label, or label option bag
    * @param x           The x position of the label
    * @param y           The y position of the label
-   * @param fontFamily  Use any valid CSS font string for the label's font. Web fonts are supported. Default is `10px sans-serif`.
+   * @param fontFamily  Use a value that is valid for the CSS `font-family` property. The default is `sans-serif`.
    * @param spriteFont  Use an Excalibur sprite font for the label's font, if a SpriteFont is provided it will take precedence
    * over a css font.
    */
@@ -398,8 +395,6 @@ export class LabelImpl extends Actor {
 /**
  * Labels are the way to draw small amounts of text to the screen. They are
  * actors and inherit all of the benefits and capabilities.
- *
- * [[include:Labels.md]]
  */
 export class Label extends Configurable(LabelImpl) {
   constructor();

@@ -76,8 +76,8 @@ export class AnimationImpl implements Drawable, HasTick {
   /**
    * Typically you will use a [[SpriteSheet]] to generate an [[Animation]].
    *
-   * @param engine  Reference to the current game engine
-   * @param images  An array of sprites to create the frames for the animation
+   * @param engineOrConfig  Reference to the current game engine
+   * @param sprites  An array of sprites to create the frames for the animation
    * @param speed   The number in milliseconds to display each frame in the animation
    * @param loop    Indicates whether the animation should loop after it is completed
    */
@@ -350,9 +350,6 @@ export class AnimationImpl implements Drawable, HasTick {
   }
 }
 
-/**
- * [[include:Constructors.md]]
- */
 export interface AnimationArgs extends Partial<AnimationImpl> {
   engine: Engine;
   sprites: Sprite[];
@@ -370,8 +367,6 @@ export interface AnimationArgs extends Partial<AnimationImpl> {
 /**
  * Animations allow you to display a series of images one after another,
  * creating the illusion of change. Generally these images will come from a [[SpriteSheet]] source.
- *
- * [[include:Animations.md]]
  */
 export class Animation extends Configurable(AnimationImpl) {
   constructor(config: AnimationArgs);
