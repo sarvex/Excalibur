@@ -10,7 +10,8 @@ describe('A scene', () => {
     actor = new ex.Actor();
     engine = TestUtils.engine({ width: 100, height: 100 });
     scene = new ex.Scene(engine);
-    engine.currentScene = scene;
+    engine.add('default', scene);
+    engine.goToScene('default');
 
     spyOn(scene, 'draw').and.callThrough();
     spyOn(actor, 'draw');
@@ -529,7 +530,6 @@ describe('A scene', () => {
     beforeEach(() => {
       engine = TestUtils.engine({ width: 100, height: 100 });
       scene = new ex.Scene(engine);
-      engine.currentScene = scene;
       engine.removeScene('root');
       engine.addScene('root', scene);
     });

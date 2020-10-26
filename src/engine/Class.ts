@@ -1,19 +1,17 @@
 import { GameEvent } from './Events';
 import { EventDispatcher } from './EventDispatcher';
 import { Eventable } from './Interfaces/Evented';
-import { Emitter } from './EventEmitter';
 
 /**
  * Excalibur base class that provides basic functionality such as [[EventDispatcher]]
  * and extending abilities for vanilla Javascript projects
+ * @deprecated Will be removed in v0.26.0
  */
 export class Class implements Eventable {
   /**
    * Direct access to the game object event dispatcher.
    */
   public eventDispatcher: EventDispatcher;
-
-  public events: Emitter<any> = new Emitter<any>();
 
   constructor() {
     this.eventDispatcher = new EventDispatcher(this);

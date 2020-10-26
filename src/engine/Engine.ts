@@ -33,13 +33,14 @@ import {
 import { CanLoad } from './Interfaces/Loader';
 import { Logger, LogLevel } from './Util/Log';
 import { Color } from './Drawing/Color';
-import { Scene } from './Scene';
+import { Scene, SceneEvents } from './Scene';
 import { PostProcessor } from './PostProcessing/PostProcessor';
 import { Debug, DebugStats } from './Debug';
 import { Class } from './Class';
 import * as Input from './Input/Index';
 import * as Events from './Events';
 import { BrowserEvents } from './Util/Browser';
+import { Emitter, Subscription } from './EventEmitter';
 
 /**
  * Enum representing the different mousewheel event bubble prevention
@@ -161,6 +162,15 @@ export interface EngineOptions {
   backgroundColor?: Color;
 }
 
+export type EngineEvents = SceneEvents & {
+  start: GameStartEvent;
+  stop: GameStopEvent;
+  visible: VisibleEvent;
+  hidden: HiddenEvent;
+  preframe: PreFrameEvent;
+  postframe: PostFrameEvent;
+};
+
 /**
  * The Excalibur Engine
  *
@@ -169,6 +179,7 @@ export interface EngineOptions {
  * loading resources, and managing the scene.
  */
 export class Engine extends Class implements CanInitialize, CanUpdate, CanDraw {
+  public events = new Emitter<EngineEvents>();
   /**
    *
    */
@@ -283,10 +294,14 @@ export class Engine extends Class implements CanInitialize, CanUpdate, CanDraw {
    */
   public postProcessors: PostProcessor[] = [];
 
+  private _currentScene: Scene;
+  private _currentScenePipeSubscription: Subscription;
   /**
    * The current [[Scene]] being drawn and updated on screen
    */
-  public currentScene: Scene;
+  public get currentScene(): Scene {
+    return this._currentScene;
+  }
 
   /**
    * The default [[Scene]] of the game, use [[Engine.goToScene]] to transition to different scenes.
@@ -389,8 +404,10 @@ export class Engine extends Class implements CanInitialize, CanUpdate, CanDraw {
   public on(eventName: Events.predraw, handler: (event: PreDrawEvent) => void): void;
   public on(eventName: Events.postdraw, handler: (event: PostDrawEvent) => void): void;
   public on(eventName: string, handler: (event: GameEvent<any>) => void): void;
+  // @obsolete({message: 'Engine.on(...) will be removed in excalibur v0.26.0', alternateMethod: 'Use Engine.events.on(...)'})
   public on(eventName: string, handler: (event: any) => void): void {
     super.on(eventName, handler);
+    this.events.on(eventName, handler);
   }
 
   public once(eventName: Events.initialize, handler: (event: Events.InitializeEvent<Engine>) => void): void;
@@ -405,8 +422,10 @@ export class Engine extends Class implements CanInitialize, CanUpdate, CanDraw {
   public once(eventName: Events.predraw, handler: (event: PreDrawEvent) => void): void;
   public once(eventName: Events.postdraw, handler: (event: PostDrawEvent) => void): void;
   public once(eventName: string, handler: (event: GameEvent<any>) => void): void;
+  // @obsolete({message: 'Engine.once(...) will be removed in excalibur v0.26.0', alternateMethod: 'Use Engine.events.once(...)'})
   public once(eventName: string, handler: (event: any) => void): void {
     super.once(eventName, handler);
+    this.events.once(eventName, handler);
   }
 
   public off(eventName: Events.initialize, handler?: (event: Events.InitializeEvent<Engine>) => void): void;
@@ -421,8 +440,10 @@ export class Engine extends Class implements CanInitialize, CanUpdate, CanDraw {
   public off(eventName: Events.predraw, handler?: (event: PreDrawEvent) => void): void;
   public off(eventName: Events.postdraw, handler?: (event: PostDrawEvent) => void): void;
   public off(eventName: string, handler?: (event: GameEvent<any>) => void): void;
+  // @obsolete({message: 'Engine.off(...) will be removed in excalibur v0.26.0', alternateMethod: 'Use Engine.events.off(...)'})
   public off(eventName: string, handler?: (event: any) => void): void {
     super.off(eventName, handler);
+    this.events.off(eventName, handler);
   }
 
   /**
@@ -585,7 +606,7 @@ O|===|* >________________>\n\
 
     this._initialize(options);
 
-    this.rootScene = this.currentScene = new Scene(this);
+    this.rootScene = this._currentScene = new Scene(this);
 
     this.addScene('root', this.rootScene);
     this.goToScene('root');
@@ -862,18 +883,20 @@ O|===|* >________________>\n\
       // only deactivate when initialized
       if (this.currentScene.isInitialized) {
         this.currentScene._deactivate.call(this.currentScene, [oldScene, newScene]);
-        this.currentScene.eventDispatcher.emit('deactivate', new DeactivateEvent(newScene, this.currentScene));
+        this.currentScene.events.emit('deactivate', new DeactivateEvent(newScene, this.currentScene));
+        this._currentScenePipeSubscription.close();
       }
 
       // set current scene to new one
-      this.currentScene = newScene;
+      this._currentScene = newScene;
       this.screen.setCurrentCamera(newScene.camera);
 
       // initialize the current scene if has not been already
       this.currentScene._initialize(this);
 
       this.currentScene._activate.call(this.currentScene, [oldScene, newScene]);
-      this.currentScene.eventDispatcher.emit('activate', new ActivateEvent(oldScene, this.currentScene));
+      this.currentScene.events.emit('activate', new ActivateEvent(oldScene, this.currentScene));
+      this._currentScenePipeSubscription = this.currentScene.events.pipe(this.events);
     } else {
       this._logger.error('Scene', key, 'does not exist!');
     }
@@ -930,9 +953,11 @@ O|===|* >________________>\n\
     this.browser.document.on(visibilityChange, () => {
       if (document[hidden]) {
         this.eventDispatcher.emit('hidden', new HiddenEvent(this));
+        this.events.emit('hidden', new HiddenEvent(this));
         this._logger.debug('Window hidden');
       } else {
         this.eventDispatcher.emit('visible', new VisibleEvent(this));
+        this.events.emit('visible', new VisibleEvent(this));
         this._logger.debug('Window visible');
       }
     });
@@ -974,6 +999,7 @@ O|===|* >________________>\n\
     if (!this.isInitialized) {
       this.onInitialize(engine);
       super.emit('initialize', new InitializeEvent(engine, this));
+      this.events.emit('initialize', new InitializeEvent(engine, this));
       this._isInitialized = true;
     }
   }
@@ -1019,6 +1045,7 @@ O|===|* >________________>\n\
    */
   public _preupdate(delta: number) {
     this.emit('preupdate', new PreUpdateEvent(this, delta, this));
+    this.events.emit('preupdate', new PreUpdateEvent(this, delta, this));
     this.onPreUpdate(this, delta);
   }
 
@@ -1031,6 +1058,7 @@ O|===|* >________________>\n\
    */
   public _postupdate(delta: number) {
     this.emit('postupdate', new PostUpdateEvent(this, delta, this));
+    this.events.emit('postupdate', new PostUpdateEvent(this, delta, this));
     this.onPostUpdate(this, delta);
   }
 
@@ -1090,6 +1118,7 @@ O|===|* >________________>\n\
    */
   public _predraw(_ctx: CanvasRenderingContext2D, delta: number) {
     this.emit('predraw', new PreDrawEvent(_ctx, delta, this));
+    this.events.emit('predraw', new PreDrawEvent(_ctx, delta, this));
     this.onPreDraw(_ctx, delta);
   }
 
@@ -1102,6 +1131,7 @@ O|===|* >________________>\n\
    */
   public _postdraw(_ctx: CanvasRenderingContext2D, delta: number) {
     this.emit('postdraw', new PostDrawEvent(_ctx, delta, this));
+    this.events.emit('postdraw', new PostDrawEvent(_ctx, delta, this));
     this.onPostDraw(_ctx, delta);
   }
 
@@ -1155,6 +1185,7 @@ O|===|* >________________>\n\
       this.screen.popResolutionAndViewport();
       this.screen.applyResolutionAndViewport();
       this.emit('start', new GameStartEvent(this));
+      this.events.emit('start', new GameStartEvent(this));
     });
 
     if (!this._hasStarted) {
@@ -1180,6 +1211,7 @@ O|===|* >________________>\n\
       try {
         game._requestId = raf(mainloop);
         game.emit('preframe', new PreFrameEvent(game, game.stats.prevFrame));
+        game.events.emit('preframe', new PreFrameEvent(game, game.stats.prevFrame));
 
         // Get the time to calculate time-elapsed
         const now = nowFn();
@@ -1212,6 +1244,7 @@ O|===|* >________________>\n\
         lastTime = now;
 
         game.emit('postframe', new PostFrameEvent(game, game.stats.currFrame));
+        game.events.emit('postframe', new PostFrameEvent(game, game.stats.currFrame));
         game.stats.prevFrame.reset(game.stats.currFrame);
       } catch (e) {
         window.cancelAnimationFrame(game._requestId);
@@ -1227,6 +1260,7 @@ O|===|* >________________>\n\
   public stop() {
     if (this._hasStarted) {
       this.emit('stop', new GameStopEvent(this));
+      this.events.emit('stop', new GameStopEvent(this));
       this.browser.pause();
       this._hasStarted = false;
       this._logger.debug('Game stopped');

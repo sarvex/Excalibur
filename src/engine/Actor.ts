@@ -20,7 +20,18 @@ import {
   EnterViewPortEvent,
   ExitViewPortEvent
 } from './Events';
-import { PointerEvent, WheelEvent, PointerDragEvent, PointerEventName } from './Input/PointerEvents';
+import {
+  PointerEvent,
+  WheelEvent,
+  PointerDragEvent,
+  PointerEventName,
+  PointerUpEvent,
+  PointerDownEvent,
+  PointerEnterEvent,
+  PointerLeaveEvent,
+  PointerMoveEvent,
+  PointerCancelEvent
+} from './Input/PointerEvents';
 import { Engine } from './Engine';
 import { Color } from './Drawing/Color';
 import { Sprite } from './Drawing/Sprite';
@@ -46,7 +57,8 @@ import { obsolete } from './Util/Decorators';
 import { Collider } from './Collision/Collider';
 import { Shape } from './Collision/Shape';
 
-import { Entity } from './EntityComponentSystem/Entity';
+import { Entity, EntityEvents } from './EntityComponentSystem/Entity';
+import { Emitter } from './EventEmitter';
 
 /**
  * Type guard for checking if something is an Actor
@@ -78,9 +90,39 @@ export interface ActorDefaults {
 }
 
 /**
+ * Built in events supported by all entities
+ */
+export type ActorEvents = EntityEvents<any> & {
+  collisionstart: CollisionStartEvent;
+  collisionend: CollisionEndEvent;
+  precollision: PreCollisionEvent;
+  postcollision: PostCollisionEvent;
+  kill: KillEvent;
+  prekill: PreKillEvent;
+  postkill: PostKillEvent;
+  predraw: PreDrawEvent;
+  postdraw: PostDrawEvent;
+  predebugdraw: PreDebugDrawEvent;
+  postdebugdraw: PostDebugDrawEvent;
+  pointerup: PointerUpEvent;
+  pointerdown: PointerDownEvent;
+  pointerenter: PointerEnterEvent;
+  pointerleave: PointerLeaveEvent;
+  pointermove: PointerMoveEvent;
+  pointercancel: PointerCancelEvent;
+  pointerwheel: WheelEvent;
+  pointerdragstart: PointerDragEvent;
+  pointerdragend: PointerDragEvent;
+  pointerdragenter: PointerDragEvent;
+  pointerdragleave: PointerDragEvent;
+  pointerdragmove: PointerDragEvent;
+  enterviewport: EnterViewPortEvent;
+  exitviewport: ExitViewPortEvent;
+};
+
+/**
  * @hidden
  */
-
 export class ActorImpl extends Entity implements Actionable, Eventable, PointerEvents, CanInitialize, CanUpdate, CanDraw, CanBeKilled {
   // #region Properties
 
@@ -98,6 +140,8 @@ export class ActorImpl extends Entity implements Actionable, Eventable, PointerE
    * The unique identifier for the actor
    */
   public id: number = ActorImpl.maxId++;
+
+  public events: Emitter<ActorEvents>;
 
   /**
    * The physics body the is associated with this actor. The body is the container for all physical properties, like position, velocity,
@@ -666,9 +710,11 @@ export class ActorImpl extends Entity implements Actionable, Eventable, PointerE
   public on(eventName: Events.enterviewport, handler: (event: EnterViewPortEvent) => void): void;
   public on(eventName: Events.exitviewport, handler: (event: ExitViewPortEvent) => void): void;
   public on(eventName: string, handler: (event: GameEvent<Actor>) => void): void;
+  @obsolete({ message: 'Actor.on(...) will be removed in excalibur v0.26.0', alternateMethod: 'Use Actor.events.on(...)' })
   public on(eventName: string, handler: (event: any) => void): void {
     this._checkForPointerOptIn(eventName);
     super.on(eventName, handler);
+    this.events.on(eventName, handler);
   }
 
   public once(eventName: Events.exittrigger, handler: (event: ExitTriggerEvent) => void): void;
@@ -733,9 +779,11 @@ export class ActorImpl extends Entity implements Actionable, Eventable, PointerE
   public once(eventName: Events.enterviewport, handler: (event: EnterViewPortEvent) => void): void;
   public once(eventName: Events.exitviewport, handler: (event: ExitViewPortEvent) => void): void;
   public once(eventName: string, handler: (event: GameEvent<Actor>) => void): void;
+  @obsolete({ message: 'Actor.once(...) will be removed in excalibur v0.26.0', alternateMethod: 'Use Actor.events.once(...)' })
   public once(eventName: string, handler: (event: any) => void): void {
     this._checkForPointerOptIn(eventName);
     super.once(eventName, handler);
+    this.events.once(eventName, handler);
   }
 
   public off(eventName: Events.exittrigger, handler?: (event: ExitTriggerEvent) => void): void;
@@ -797,8 +845,10 @@ export class ActorImpl extends Entity implements Actionable, Eventable, PointerE
   public off(eventName: Events.enterviewport, handler?: (event: EnterViewPortEvent) => void): void;
   public off(eventName: Events.exitviewport, handler?: (event: ExitViewPortEvent) => void): void;
   public off(eventName: string, handler?: (event: GameEvent<Actor>) => void): void;
+  @obsolete({ message: 'Actor.off(...) will be removed in excalibur v0.26.0', alternateMethod: 'Use Actor.events.off(...)' })
   public off(eventName: string, handler?: (event: any) => void): void {
     super.off(eventName, handler);
+    this.events.off(eventName, handler);
   }
 
   // #endregion
@@ -810,7 +860,9 @@ export class ActorImpl extends Entity implements Actionable, Eventable, PointerE
    * @internal
    */
   public _prekill(_scene: Scene) {
+    // TODO remove this.emit in v0.26.0
     super.emit('prekill', new PreKillEvent(this));
+    this.events.emit('prekill', new PreKillEvent(this));
     this.onPreKill(_scene);
   }
 
@@ -830,7 +882,9 @@ export class ActorImpl extends Entity implements Actionable, Eventable, PointerE
    * @internal
    */
   public _postkill(_scene: Scene) {
+    // TODO remove this.emit in v0.26.0
     super.emit('postkill', new PostKillEvent(this));
+    this.events.emit('postkill', new PostKillEvent(this));
     this.onPostKill(_scene);
   }
 
@@ -848,9 +902,12 @@ export class ActorImpl extends Entity implements Actionable, Eventable, PointerE
    * it from the scene graph. It will no longer be drawn or updated.
    */
   public kill() {
+    // TODO should kill be moved to entities?
     if (this.scene) {
       this._prekill(this.scene);
+      // TODO remove this.emit in v0.26.0
       this.emit('kill', new KillEvent(this));
+      this.events.emit('kill', new KillEvent(this));
       this._isKilled = true;
       this.scene.remove(this);
       this._postkill(this.scene);
@@ -1186,7 +1243,9 @@ export class ActorImpl extends Entity implements Actionable, Eventable, PointerE
    * @internal
    */
   public _preupdate(engine: Engine, delta: number): void {
+    // TODO remove this.emit in v0.26.0
     this.emit('preupdate', new PreUpdateEvent(engine, delta, this));
+    this.events.emit('preupdate', new PreUpdateEvent(engine, delta, this));
     this.onPreUpdate(engine, delta);
   }
 
@@ -1197,7 +1256,9 @@ export class ActorImpl extends Entity implements Actionable, Eventable, PointerE
    * @internal
    */
   public _postupdate(engine: Engine, delta: number): void {
+    // TODO remove this.emit in v0.26.0
     this.emit('postupdate', new PreUpdateEvent(engine, delta, this));
+    this.events.emit('postupdate', new PreUpdateEvent(engine, delta, this));
     this.onPostUpdate(engine, delta);
   }
 
@@ -1272,6 +1333,7 @@ export class ActorImpl extends Entity implements Actionable, Eventable, PointerE
    */
   public _predraw(ctx: CanvasRenderingContext2D, delta: number): void {
     this.emit('predraw', new PreDrawEvent(ctx, delta, this));
+    this.events.emit('predraw', new PreDrawEvent(ctx, delta, this));
     this.onPreDraw(ctx, delta);
   }
 
@@ -1283,6 +1345,7 @@ export class ActorImpl extends Entity implements Actionable, Eventable, PointerE
    */
   public _postdraw(ctx: CanvasRenderingContext2D, delta: number): void {
     this.emit('postdraw', new PreDrawEvent(ctx, delta, this));
+    this.events.emit('postdraw', new PreDrawEvent(ctx, delta, this));
     this.onPostDraw(ctx, delta);
   }
 
@@ -1292,7 +1355,9 @@ export class ActorImpl extends Entity implements Actionable, Eventable, PointerE
    */
   /* istanbul ignore next */
   public debugDraw(ctx: CanvasRenderingContext2D) {
+    // TODO remove this.emit in v0.26.0
     this.emit('predebugdraw', new PreDebugDrawEvent(ctx, this));
+    this.events.emit('predebugdraw', new PreDebugDrawEvent(ctx, this));
 
     this.body.collider.debugDraw(ctx);
 
@@ -1350,7 +1415,9 @@ export class ActorImpl extends Entity implements Actionable, Eventable, PointerE
       this.children[i].debugDraw(ctx);
     }
 
+    // TODO remove this.emit in v0.26.0
     this.emit('postdebugdraw', new PostDebugDrawEvent(ctx, this));
+    this.events.emit('postdebugdraw', new PostDebugDrawEvent(ctx, this));
   }
 
   /**

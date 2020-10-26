@@ -43,7 +43,9 @@ describe('The engine', () => {
       suppressPlayButton: false
     });
     (<any>engine)._suppressPlayButton = false;
-    engine.currentScene = scene;
+
+    engine.add('default', scene);
+    engine.goToScene('default');
 
     loop = mock.loop(engine);
 
@@ -62,7 +64,8 @@ describe('The engine', () => {
     engine = TestUtils.engine({
       suppressPlayButton: true
     });
-    engine.currentScene = scene;
+    engine.add('default', scene);
+    engine.goToScene('default');
     engine.currentScene.add(
       new ex.Actor({
         pos: new ex.Vector(250, 250),

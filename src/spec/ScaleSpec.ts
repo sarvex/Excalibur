@@ -19,7 +19,8 @@ describe('A scaled and rotated actor', () => {
     engine.setAntialiasing(false);
 
     scene = new ex.Scene(engine);
-    engine.currentScene = scene;
+    engine.add('default', scene);
+    engine.goToScene('default');
 
     spyOn(scene, 'draw').and.callThrough();
     spyOn(actor, 'draw').and.callThrough();

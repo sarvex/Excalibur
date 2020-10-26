@@ -20,7 +20,7 @@ import { SortedList } from './Util/SortedList';
 import { Engine } from './Engine';
 import { TileMap } from './TileMap';
 import { Camera } from './Camera';
-import { Actor } from './Actor';
+import { Actor, ActorEvents } from './Actor';
 import { Class } from './Class';
 import { CanInitialize, CanActivate, CanDeactivate, CanUpdate, CanDraw } from './Interfaces/LifecycleEvents';
 import * as Util from './Util/Util';
@@ -32,6 +32,14 @@ import { QueryManager } from './EntityComponentSystem/QueryManager';
 import { EntityManager } from './EntityComponentSystem/EntityManager';
 import { SystemManager } from './EntityComponentSystem/SystemManager';
 import { SystemType } from './EntityComponentSystem/System';
+import { Emitter } from './EventEmitter';
+import { obsolete } from './Util/Decorators';
+
+export type SceneEvents = ActorEvents & {
+  activate: ActivateEvent;
+  deactivate: DeactivateEvent;
+};
+
 /**
  * [[Actor|Actors]] are composed together into groupings called Scenes in
  * Excalibur. The metaphor models the same idea behind real world
@@ -40,6 +48,7 @@ import { SystemType } from './EntityComponentSystem/System';
  * Typical usages of a scene include: levels, menus, loading screens, etc.
  */
 export class Scene extends Class implements CanInitialize, CanActivate, CanDeactivate, CanUpdate, CanDraw {
+  public events = new Emitter<SceneEvents>();
   /**
    * Gets or sets the current camera for the scene
    */
@@ -81,7 +90,7 @@ export class Scene extends Class implements CanInitialize, CanActivate, CanDeact
 
   private _isInitialized: boolean = false;
 
-  private _sortedDrawingTree: SortedList<Actor> = new SortedList<Actor>(a => a.z);
+  private _sortedDrawingTree: SortedList<Actor> = new SortedList<Actor>((a) => a.z);
 
   private _broadphase: CollisionBroadphase = new DynamicTreeCollisionBroadphase();
 
@@ -111,8 +120,10 @@ export class Scene extends Class implements CanInitialize, CanActivate, CanDeact
   public on(eventName: Events.predebugdraw, handler: (event: PreDebugDrawEvent) => void): void;
   public on(eventName: Events.postdebugdraw, handler: (event: PostDebugDrawEvent) => void): void;
   public on(eventName: string, handler: (event: GameEvent<any>) => void): void;
+  @obsolete({ message: 'Scene.on(...) will be removed in excalibur v0.26.0', alternateMethod: 'Use Scene.events.on(...)' })
   public on(eventName: string, handler: (event: any) => void): void {
     super.on(eventName, handler);
+    this.events.on(eventName, handler);
   }
 
   public once(eventName: Events.initialize, handler: (event: InitializeEvent<Scene>) => void): void;
@@ -125,8 +136,10 @@ export class Scene extends Class implements CanInitialize, CanActivate, CanDeact
   public once(eventName: Events.predebugdraw, handler: (event: PreDebugDrawEvent) => void): void;
   public once(eventName: Events.postdebugdraw, handler: (event: PostDebugDrawEvent) => void): void;
   public once(eventName: string, handler: (event: GameEvent<any>) => void): void;
+  @obsolete({ message: 'Scene.once(...) will be removed in excalibur v0.26.0', alternateMethod: 'Use Scene.events.once(...)' })
   public once(eventName: string, handler: (event: any) => void): void {
     super.once(eventName, handler);
+    this.events.once(eventName, handler);
   }
 
   public off(eventName: Events.initialize, handler?: (event: InitializeEvent<Scene>) => void): void;
@@ -139,8 +152,10 @@ export class Scene extends Class implements CanInitialize, CanActivate, CanDeact
   public off(eventName: Events.predebugdraw, handler?: (event: PreDebugDrawEvent) => void): void;
   public off(eventName: Events.postdebugdraw, handler?: (event: PostDebugDrawEvent) => void): void;
   public off(eventName: string, handler?: (event: GameEvent<any>) => void): void;
+  @obsolete({ message: 'Scene.off(...) will be removed in excalibur v0.26.0', alternateMethod: 'Use Scene.events.off(...)' })
   public off(eventName: string, handler?: (event: any) => void): void {
     super.off(eventName, handler);
+    this.events.off(eventName, handler);
   }
 
   /**
@@ -241,6 +256,7 @@ export class Scene extends Class implements CanInitialize, CanActivate, CanDeact
 
       this._logger.debug('Scene.onInitialize', this, engine);
       this.eventDispatcher.emit('initialize', new InitializeEvent(engine, this));
+      this.events.emit('initialize', new InitializeEvent(engine, this));
       this._isInitialized = true;
     }
   }
@@ -253,6 +269,8 @@ export class Scene extends Class implements CanInitialize, CanActivate, CanDeact
    */
   public _activate(oldScene: Scene, newScene: Scene): void {
     this._logger.debug('Scene.onActivate', this);
+    this.events.unpause();
+    // TODO event?
     this.onActivate(oldScene, newScene);
   }
 
@@ -264,6 +282,8 @@ export class Scene extends Class implements CanInitialize, CanActivate, CanDeact
    */
   public _deactivate(oldScene: Scene, newScene: Scene): void {
     this._logger.debug('Scene.onDeactivate', this);
+    this.events.pause();
+    // TODO event?
     this.onDeactivate(oldScene, newScene);
   }
 
@@ -275,6 +295,7 @@ export class Scene extends Class implements CanInitialize, CanActivate, CanDeact
    */
   public _preupdate(_engine: Engine, delta: number): void {
     this.emit('preupdate', new PreUpdateEvent(_engine, delta, this));
+    this.events.emit('preupdate', new PreUpdateEvent(_engine, delta, this));
     this.onPreUpdate(_engine, delta);
   }
 
@@ -286,6 +307,7 @@ export class Scene extends Class implements CanInitialize, CanActivate, CanDeact
    */
   public _postupdate(_engine: Engine, delta: number): void {
     this.emit('postupdate', new PostUpdateEvent(_engine, delta, this));
+    this.events.emit('postupdate', new PostUpdateEvent(_engine, delta, this));
     this.onPostUpdate(_engine, delta);
   }
 
@@ -298,6 +320,7 @@ export class Scene extends Class implements CanInitialize, CanActivate, CanDeact
    */
   public _predraw(_ctx: CanvasRenderingContext2D, _delta: number): void {
     this.emit('predraw', new PreDrawEvent(_ctx, _delta, this));
+    this.events.emit('predraw', new PreDrawEvent(_ctx, _delta, this));
     this.onPreDraw(_ctx, _delta);
   }
 
@@ -310,6 +333,7 @@ export class Scene extends Class implements CanInitialize, CanActivate, CanDeact
    */
   public _postdraw(_ctx: CanvasRenderingContext2D, _delta: number): void {
     this.emit('postdraw', new PostDrawEvent(_ctx, _delta, this));
+    this.events.emit('postdraw', new PostDrawEvent(_ctx, _delta, this));
     this.onPostDraw(_ctx, _delta);
   }
 
@@ -471,6 +495,7 @@ export class Scene extends Class implements CanInitialize, CanActivate, CanDeact
   /* istanbul ignore next */
   public debugDraw(ctx: CanvasRenderingContext2D) {
     this.emit('predebugdraw', new PreDebugDrawEvent(ctx, this));
+    this.events.emit('predebugdraw', new PreDebugDrawEvent(ctx, this));
 
     let i: number, len: number;
 
@@ -490,6 +515,7 @@ export class Scene extends Class implements CanInitialize, CanActivate, CanDeact
 
     this.camera.debugDraw(ctx);
     this.emit('postdebugdraw', new PostDebugDrawEvent(ctx, this));
+    this.events.emit('postdebugdraw', new PostDebugDrawEvent(ctx, this));
   }
 
   /**
@@ -631,6 +657,7 @@ export class Scene extends Class implements CanInitialize, CanActivate, CanDeact
     }
 
     this._sortedDrawingTree.add(actor);
+    actor.events.pipe(this.events);
   }
 
   /**

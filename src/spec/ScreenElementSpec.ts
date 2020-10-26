@@ -22,7 +22,8 @@ describe('A ScreenElement', () => {
     engine = TestUtils.engine();
 
     scene = new ex.Scene(engine);
-    engine.currentScene = scene;
+    engine.add('default', scene);
+    engine.goToScene('default');
 
     spyOn(scene, 'draw').and.callThrough();
     spyOn(screenElement, 'draw').and.callThrough();

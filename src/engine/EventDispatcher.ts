@@ -1,6 +1,9 @@
 import { GameEvent, SubscribeEvent, UnsubscribeEvent } from './Events';
 import { Eventable } from './Interfaces/Evented';
 
+/**
+ * @deprecated Will be removed in v0.26.0
+ */
 export class EventDispatcher<T = any> implements Eventable {
   private _handlers: { [key: string]: { (event: GameEvent<T>): void }[] } = {};
   private _wiredEventDispatchers: Eventable[] = [];

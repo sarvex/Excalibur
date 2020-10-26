@@ -1,5 +1,5 @@
 import { Logger } from './Log';
-import * as Util from './Util';
+import { extend } from './Util';
 
 /**
  * Obsolete decorator options
@@ -39,7 +39,7 @@ const logMessage = (message: string, options: ObsoleteOptions) => {
  * method do the deprecated one. Inspired by https://github.com/jayphelps/core-decorators.js
  */
 export function obsolete(options?: ObsoleteOptions): any {
-  options = Util.extend(
+  options = extend(
     {},
     {
       message: 'This feature will be removed in future versions of Excalibur.',
@@ -49,7 +49,7 @@ export function obsolete(options?: ObsoleteOptions): any {
     options
   );
 
-  return function(target: any, property: string, descriptor: PropertyDescriptor): any {
+  return function (target: any, property: string, descriptor: PropertyDescriptor): any {
     if (
       descriptor &&
       !(typeof descriptor.value === 'function' || typeof descriptor.get === 'function' || typeof descriptor.set === 'function')
@@ -69,7 +69,7 @@ export function obsolete(options?: ObsoleteOptions): any {
     // If descriptor is null it is a class
     const method = descriptor ? { ...descriptor } : target;
     if (!descriptor) {
-      const constructor = function() {
+      const constructor = function () {
         const args = Array.prototype.slice.call(arguments);
         logMessage(message, options);
         return new method(...args);
@@ -79,7 +79,7 @@ export function obsolete(options?: ObsoleteOptions): any {
     }
 
     if (descriptor && descriptor.value) {
-      method.value = function(this: any) {
+      method.value = function (this: any) {
         logMessage(message, options);
         return descriptor.value.apply(this, arguments);
       };
@@ -87,14 +87,14 @@ export function obsolete(options?: ObsoleteOptions): any {
     }
 
     if (descriptor && descriptor.get) {
-      method.get = function(this: any) {
+      method.get = function (this: any) {
         logMessage(message, options);
         return descriptor.get.apply(this, arguments);
       };
     }
 
     if (descriptor && descriptor.set) {
-      method.set = function(this: any) {
+      method.set = function (this: any) {
         logMessage(message, options);
         return descriptor.set.apply(this, arguments);
       };

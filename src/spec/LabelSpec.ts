@@ -1,7 +1,5 @@
 import { ExcaliburMatchers, ensureImagesLoaded } from 'excalibur-jasmine';
 import * as ex from '@excalibur';
-import { TestUtils } from './util/TestUtils';
-import { Mocks } from './util/Mocks';
 
 xdescribe('A label', () => {
   let label: ex.Label;
@@ -20,11 +18,10 @@ xdescribe('A label', () => {
     label = new ex.Label('Test string', 100, 100);
     label.fontFamily = 'Verdana';
     scene = new ex.Scene(engine);
-    engine.currentScene = scene;
+    engine.add('default', scene);
+    engine.goToScene('default');
 
     scene.add(label);
-
-    //console.log('============================\n OS:' + platform.os.family);
   });
 
   it('should have props set by constructor', () => {

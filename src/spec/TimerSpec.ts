@@ -13,18 +13,19 @@ describe('A Timer', () => {
     });
     timer = new ex.Timer({
       interval: 500,
-      fcn: function() {
+      fcn: function () {
         /*do nothing*/
       }
     });
     scene = new ex.Scene(engine);
-    engine.currentScene = scene;
+    engine.add('default', scene);
+    engine.goToScene('default');
   });
 
   it('has a unique id', () => {
     const newtimer = new ex.Timer({
       interval: 500,
-      fcn: function() {
+      fcn: function () {
         /*do nothing*/
       }
     });
@@ -33,7 +34,7 @@ describe('A Timer', () => {
 
     const newtimer2 = new ex.Timer({
       interval: 500,
-      fcn: function() {
+      fcn: function () {
         /*do nothing*/
       }
     });
@@ -54,7 +55,7 @@ describe('A Timer', () => {
     let count = 0;
     timer = new ex.Timer({
       interval: 500,
-      fcn: function() {
+      fcn: function () {
         count++;
       },
       repeats: true
@@ -71,7 +72,7 @@ describe('A Timer', () => {
     // count the number of fires
     timer = new ex.Timer({
       interval: 500,
-      fcn: function() {
+      fcn: function () {
         const dummy = 0;
       },
       repeats: true,
@@ -95,7 +96,7 @@ describe('A Timer', () => {
     let count = 0;
     timer = new ex.Timer({
       interval: 500,
-      fcn: function() {
+      fcn: function () {
         count++;
       },
       repeats: true
@@ -132,7 +133,7 @@ describe('A Timer', () => {
     let count = 0;
     timer = new ex.Timer({
       interval: 500,
-      fcn: function() {
+      fcn: function () {
         count++;
       },
       repeats: true
@@ -160,7 +161,7 @@ describe('A Timer', () => {
     // non-repeating timer
     timer = new ex.Timer({
       interval: 500,
-      fcn: function() {
+      fcn: function () {
         count++;
       },
       repeats: false
@@ -188,7 +189,7 @@ describe('A Timer', () => {
     // non-repeating timer
     timer = new ex.Timer({
       interval: 500,
-      fcn: function() {
+      fcn: function () {
         count++;
       },
       repeats: false
@@ -216,7 +217,7 @@ describe('A Timer', () => {
     // non-repeating timer
     timer = new ex.Timer({
       interval: 500,
-      fcn: function() {
+      fcn: function () {
         count++;
       },
       repeats: true
@@ -240,7 +241,7 @@ describe('A Timer', () => {
     // non-repeating timer
     timer = new ex.Timer({
       interval: 500,
-      fcn: function() {
+      fcn: function () {
         const dummy = 0;
       },
       repeats: true,

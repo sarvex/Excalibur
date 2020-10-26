@@ -17,7 +17,8 @@ describe('Collision Shape', () => {
     beforeEach(() => {
       engine = TestUtils.engine();
       scene = new ex.Scene(engine);
-      engine.currentScene = scene;
+      engine.addScene('test', scene);
+      engine.goToScene('test');
 
       actor = new ex.Actor(0, 0, 20, 20);
       circle = new ex.Circle({
@@ -393,7 +394,8 @@ describe('Collision Shape', () => {
     beforeEach(() => {
       engine = TestUtils.engine();
       scene = new ex.Scene(engine);
-      engine.currentScene = scene;
+      engine.addScene('test', scene);
+      engine.goToScene('test');
     });
 
     afterEach(() => {
@@ -767,7 +769,8 @@ describe('Collision Shape', () => {
     beforeEach(() => {
       engine = TestUtils.engine();
       scene = new ex.Scene(engine);
-      engine.currentScene = scene;
+      engine.addScene('test', scene);
+      engine.goToScene('test');
 
       actor = new ex.Actor(5, 0, 10, 10);
       edge = new ex.Edge({

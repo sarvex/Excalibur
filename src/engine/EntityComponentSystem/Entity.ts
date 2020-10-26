@@ -62,17 +62,22 @@ export type ExcludeType<TypeUnion, TypeNameOrType> = TypeNameOrType extends stri
   ? Exclude<TypeUnion, Component<TypeNameOrType>>
   : Exclude<TypeUnion, TypeNameOrType>;
 
-
-export type EntityEvents = {
-  'initialize': InitializeEvent,
-  'preupdate': PreUpdateEvent,
-  'postupdate': PostUpdateEvent
+/**
+ * Built in events supported by all entities
+ */
+export type EntityEvents<T extends Component> = {
+  initialize: InitializeEvent<Entity<T>>;
+  preupdate: PreUpdateEvent<Entity<T>>;
+  postupdate: PostUpdateEvent<Entity<T>>;
 };
 
 export class Entity<KnownComponents extends Component = never> extends Class implements OnInitialize, OnPreUpdate, OnPostUpdate {
   private static _ID = 0;
 
-  public events: Emitter<EntityEvents>;
+  /**
+   * Event emitter for entity
+   */
+  public events = new Emitter<EntityEvents<KnownComponents>>();
 
   /**
    * The unique identifier for the entity
@@ -264,6 +269,7 @@ export class Entity<KnownComponents extends Component = never> extends Class imp
    */
   public _preupdate(engine: Engine, delta: number): void {
     this.emit('preupdate', new PreUpdateEvent(engine, delta, this));
+    this.events.emit('preupdate', new PreUpdateEvent(engine, delta, this));
     this.onPreUpdate(engine, delta);
   }
 
@@ -275,6 +281,7 @@ export class Entity<KnownComponents extends Component = never> extends Class imp
    */
   public _postupdate(engine: Engine, delta: number): void {
     this.emit('postupdate', new PostUpdateEvent(engine, delta, this));
+    this.events.emit('postupdate', new PostUpdateEvent(engine, delta, this));
     this.onPostUpdate(engine, delta);
   }
 
