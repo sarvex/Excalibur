@@ -4,6 +4,7 @@ import { ExcaliburGraphicsContext } from './Context/ExcaliburGraphicsContext';
 
 import { Sprite as LegacySprite } from '../Drawing/Sprite';
 import { Texture } from '../Drawing/Texture';
+import { watch } from '../Util/Watch';
 
 export type SourceView = { x: number; y: number; width: number; height: number };
 export type DestinationSize = { width: number; height: number };
@@ -38,8 +39,12 @@ export class Sprite extends Graphic {
     super(options);
     this.image = options.image;
     const { width, height } = options;
-    this.sourceView = options.sourceView ?? { x: 0, y: 0, width: width ?? 0, height: height ?? 0 };
-    this.destSize = options.destSize ?? { width: width ?? 0, height: height ?? 0 };
+    this.sourceView = watch(options.sourceView ?? { x: 0, y: 0, width: width ?? 0, height: height ?? 0 }, () => {
+      this._dimensionsChanged = true;
+    });
+    this.destSize = watch(options.destSize ?? { width: width ?? 0, height: height ?? 0 }, () => {
+      this._dimensionsChanged = true;
+    });
     this._updateSpriteDimensions();
     this.image.ready.then(() => {
       this._updateSpriteDimensions();
@@ -54,14 +59,17 @@ export class Sprite extends Graphic {
     return this.destSize.height;
   }
 
+  private _dimensionsChanged = false;
   public set width(newWidth: number) {
     this.destSize.width = newWidth;
     super.width = Math.ceil(this.destSize.width);
+    this._dimensionsChanged = true;
   }
 
   public set height(newHeight: number) {
     this.destSize.height = newHeight;
     super.height = Math.ceil(this.destSize.height);
+    this._dimensionsChanged = true;
   }
 
   private _updateSpriteDimensions() {
@@ -81,14 +89,16 @@ export class Sprite extends Graphic {
 
   protected _preDraw(ex: ExcaliburGraphicsContext, x: number, y: number): void {
     if (this.image.isLoaded()) {
-      this._updateSpriteDimensions();
+      if (this._dimensionsChanged) {
+        this._updateSpriteDimensions();
+        this._dimensionsChanged = false;
+      }
     }
     super._preDraw(ex, x, y);
   }
 
   public _drawImage(ex: ExcaliburGraphicsContext, x: number, y: number): void {
     if (this.image.isLoaded()) {
-      this._updateSpriteDimensions();
       ex.drawImage(
         this.image.image,
         this.sourceView.x,
