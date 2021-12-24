@@ -129,7 +129,10 @@ export class Font extends Graphic implements FontRenderer {
     }
   }
 
-
+  /**
+   * Measuring text is expensive, if nothing has changed we can re-use the measurement
+   */
+  private _textMeasuringCache = new Map<string, BoundingBox>();
   /**
    * Returns a BoundingBox that is the total size of the text including mutliple lines
    *
@@ -138,6 +141,11 @@ export class Font extends Graphic implements FontRenderer {
    * @returns BoundingBox
    */
   public measureText(text: string): BoundingBox {
+    const textAndHash = text + this._getRasterPropertiesHash(null);
+    const cachedBounds = this._textMeasuringCache.get(textAndHash);
+    if (cachedBounds) {
+      return cachedBounds;
+    }
     const lines = text.split('\n');
     const maxWidthLine = lines.reduce((a, b) => {
       return a.length > b.length ? a : b;
@@ -154,22 +162,31 @@ export class Font extends Graphic implements FontRenderer {
     const bottomBounds = lineAdjustedHeight - Math.abs(metrics.actualBoundingBoxAscent);
     const x = 0;
     const y = 0;
-    return new BoundingBox({
+    const bounds = new BoundingBox({
       left: x - Math.abs(metrics.actualBoundingBoxLeft) - this.padding,
       top: y - Math.abs(metrics.actualBoundingBoxAscent) - this.padding,
       bottom: y + bottomBounds + this.padding,
       right: x + Math.abs(metrics.actualBoundingBoxRight) + this.padding
     });
+    this._textMeasuringCache.set(textAndHash, bounds);
+    return bounds;
   }
 
   private _setDimension(text: string, bitmap: CanvasRenderingContext2D): BoundingBox {
     const textBounds = this.measureText(text);
 
-    // Changing the width and height clears the context properties
-    // We double the bitmap width to account for all possible alignment
-    // We scale by "quality" so we render text without jaggies
-    bitmap.canvas.width = (textBounds.width + this.padding * 2) * 2 * this.quality;
-    bitmap.canvas.height = (textBounds.height + this.padding * 2) * 2 * this.quality;
+    const targetWidth = Math.floor((textBounds.width + this.padding * 2) * 2 * this.quality);
+    const targetHeight = Math.floor((textBounds.height + this.padding * 2) * 2 * this.quality);
+    const canvas = bitmap.canvas;
+
+    // only set if we must, setting the value triggers some potentially expensive browser processes
+    if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+      // Changing the width and height clears the context properties
+      // We double the bitmap width to account for all possible alignment
+      // We scale by "quality" so we render text without jaggies
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+    }
 
     return textBounds;
   }
@@ -225,7 +242,14 @@ export class Font extends Graphic implements FontRenderer {
     }
   }
 
+  private _textAlreadyDrawn = new Map<string, boolean>();
   private _drawText(ctx: CanvasRenderingContext2D, text: string, colorOverride: Color, lineHeight: number): void {
+    const textAndHash = text + this._getRasterPropertiesHash(colorOverride);
+    const textAlreadyDrawn = this._textAlreadyDrawn.get(textAndHash);
+    if (textAlreadyDrawn) {
+      return
+    }
+
     const lines = text.split('\n');
     this._applyRasterProperites(ctx, colorOverride);
     this._applyFont(ctx);
@@ -249,6 +273,7 @@ export class Font extends Graphic implements FontRenderer {
       /* istanbul ignore next */
       line(ctx, Color.Red, 0, -ctx.canvas.height / 2, 0, ctx.canvas.height / 2, 2);
     }
+    this._textAlreadyDrawn.set(textAndHash, true); // TODO is this a memory leak?
   }
 
   private _textToBitmap = new Map<string, CanvasRenderingContext2D>();
@@ -274,9 +299,6 @@ export class Font extends Graphic implements FontRenderer {
     const bitmap = this._getTextBitmap(text, colorOverride);
     const bounds = this._setDimension(text, bitmap);
     this._textBounds = bounds;
-
-    bitmap.canvas.width = (bounds.width + this.padding * 2) * 2 * this.quality;
-    bitmap.canvas.height = (bounds.height + this.padding * 2) * 2 * this.quality;
 
     this._preDraw(ex, x, y);
 
@@ -326,10 +348,21 @@ export class Font extends Graphic implements FontRenderer {
    * Remove any expired cached text bitmaps
    */
   public checkAndClearCache() {
+    let livingBitmaps: CanvasRenderingContext2D[] = [];
     for (const [bitmap, time] of this._bitmapUsage.entries()) {
       // if bitmap hasn't been used in 1 second clear it
       if (time + 1000 < performance.now()) {
         this._bitmapUsage.delete(bitmap);
+      }
+      livingBitmaps.push(bitmap);
+    }
+
+    // Clear out other caches if the bitmap isn't alive
+    for (const [textAndHash, bitmap] of this._textToBitmap) {
+      if (livingBitmaps.indexOf(bitmap) === -1) {
+        this._textToBitmap.delete(textAndHash);
+        this._textMeasuringCache.delete(textAndHash);
+        this._textAlreadyDrawn.delete(textAndHash)
       }
     }
   }
