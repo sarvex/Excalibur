@@ -1,6 +1,7 @@
 import { Vector, vec } from '../Math/vector';
 import { ExcaliburGraphicsContext } from './Context/ExcaliburGraphicsContext';
 import { BoundingBox } from '../Collision/BoundingBox';
+import { Matrix } from '..';
 
 export interface GraphicOptions {
   /**
@@ -84,6 +85,8 @@ export abstract class Graphic {
    */
   public origin: Vector | null = null;
 
+  public transform: Matrix = Matrix.identity();
+
   constructor(options?: GraphicOptions) {
     if (options) {
       this.origin = options.origin ?? this.origin;
@@ -93,6 +96,7 @@ export abstract class Graphic {
       this.opacity = options.opacity ?? this.opacity;
       this.scale = options.scale ?? this.scale;
     }
+    // TODO props need to tigger recalc
   }
 
   public cloneGraphicOptions(): GraphicOptions {
@@ -161,6 +165,17 @@ export abstract class Graphic {
    */
   protected abstract _drawImage(ex: ExcaliburGraphicsContext, x: number, y: number): void;
 
+
+  private _transformNeedsCalc = true;
+  applyTransform(): void {
+    const tx = this.transform;
+    tx.scale(Math.abs(this.scale.x), Math.abs(this.scale.y));
+    this._rotate(tx);
+    this._flip(tx);
+    this._transformNeedsCalc = false;
+  }
+
+
   /**
    * Apply affine transformations to the graphics context to manipulate the graphic before [[Graphic._drawImage]]
    * @param ex
@@ -170,14 +185,18 @@ export abstract class Graphic {
   protected _preDraw(ex: ExcaliburGraphicsContext, x: number, y: number): void {
     ex.save();
     ex.translate(x, y);
-    ex.scale(Math.abs(this.scale.x), Math.abs(this.scale.y));
-    this._rotate(ex);
-    this._flip(ex);
+    if (this._transformNeedsCalc) {
+      this.applyTransform();
+    }
+    ex.multiply(this.transform);
+    // ex.scale(Math.abs(this.scale.x), Math.abs(this.scale.y));
+    // this._rotate(ex);
+    // this._flip(ex);
     // it is important to multiply alphas so graphics respect the current context
     ex.opacity = ex.opacity * this.opacity;
   }
 
-  protected _rotate(ex: ExcaliburGraphicsContext) {
+  protected _rotate(ex: ExcaliburGraphicsContext | Matrix) {
     const scaleDirX = this.scale.x > 0 ? 1 : -1;
     const scaleDirY = this.scale.y > 0 ? 1 : -1;
     const origin = this.origin ?? vec(this.width / 2, this.height / 2);
@@ -188,7 +207,7 @@ export abstract class Graphic {
     ex.translate(-origin.x, -origin.y);
   }
 
-  protected _flip(ex: ExcaliburGraphicsContext) {
+  protected _flip(ex: ExcaliburGraphicsContext | Matrix) {
     if (this.flipHorizontal) {
       ex.translate(this.width / this.scale.x, 0);
       ex.scale(-1, 1);

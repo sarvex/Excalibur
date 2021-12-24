@@ -257,6 +257,10 @@ export class ExcaliburGraphicsContext2DCanvas implements ExcaliburGraphicsContex
     throw new Error('Not implemented');
   }
 
+  public multiply(_m: Matrix): void {
+    throw new Error('Not implemented');
+  }
+
   public addPostProcessor(_postprocessor: PostProcessor) {
     throw Error('Not implemented');
   }
