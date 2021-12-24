@@ -22,12 +22,13 @@ export class ImageSource implements Loadable<HTMLImageElement> {
     return this.image.naturalHeight;
   }
 
+  private _isLoaded = false;
   /**
    * Returns true if the Texture is completely loaded and is ready
    * to be drawn.
    */
   public isLoaded(): boolean {
-    return !!this.data.src;
+    return this._isLoaded;
   }
 
   /**
@@ -82,6 +83,7 @@ export class ImageSource implements Loadable<HTMLImageElement> {
 
       // Set results
       this.data = image;
+      this._isLoaded = true;
     } catch (error) {
       throw `Error loading ImageSource from path '${this.path}' with error [${error.message}]`;
     }
