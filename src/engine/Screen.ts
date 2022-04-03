@@ -695,7 +695,12 @@ export class Screen {
         this._resizeObserver.observe(this.parent);
       }
       this.parent.addEventListener('resize', this._resizeHandler);
+      window.screen.orientation.onchange = this._resizeHandler;
     }
+  }
+
+  public forceResize() {
+    this._resizeHandler();
   }
 
   /**
