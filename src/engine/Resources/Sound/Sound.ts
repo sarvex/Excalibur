@@ -126,10 +126,12 @@ export class Sound extends Class implements Audio, Loadable<AudioBuffer> {
       return await this._audioContext.decodeAudioData(data.slice(0));
     } catch (e) {
       this.logger.error(
-        'Unable to decode ' +
+        'Unable to decode audio' + this.path +
           ' this browser may not fully support this format, or the file may be corrupt, ' +
           'if this is an mp3 try removing id3 tags and album art from the file.'
       );
+      // TODO should we actually reject here? Maybe just empty audio buffer?
+      // If 1 audio file fails it breaks the chain of loading
       return await Promise.reject();
     }
   }
