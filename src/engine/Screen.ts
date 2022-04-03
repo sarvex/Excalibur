@@ -695,7 +695,14 @@ export class Screen {
         this._resizeObserver.observe(this.parent);
       }
       this.parent.addEventListener('resize', this._resizeHandler);
-      window.screen.orientation.onchange = this._resizeHandler;
+
+      if (window?.screen?.orientation?.onchange) {
+        window.screen.orientation.onchange = this._resizeHandler;
+      } else {
+        // fallback to deprecated api for safari
+        this._browser.window.on('orientationchange', this._resizeHandler);
+      }
+
     }
   }
 
