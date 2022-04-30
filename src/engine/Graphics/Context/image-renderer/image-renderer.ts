@@ -16,6 +16,7 @@ export class ImageRenderer implements RendererPlugin {
   public readonly type = 'ex.image';
   public priority: number = 0;
 
+  // TODO: firefox seems to do better with smaller buffer sizes when uploading oddly
   private _maxImages: number = 10922; // max(uint16) / 6 verts
   private _maxTextures: number = 0;
 
