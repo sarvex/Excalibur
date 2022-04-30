@@ -11,7 +11,7 @@ import { Ray } from '../../Math/ray';
 import { ClosestLineJumpTable } from './ClosestLineJumpTable';
 import { Transform, TransformComponent } from '../../EntityComponentSystem';
 import { Collider } from './Collider';
-import { ExcaliburGraphicsContext, Logger, range } from '../..';
+import { ExcaliburGraphicsContext, Logger, Pool, range } from '../..';
 import { CompositeCollider } from './CompositeCollider';
 import { Shape } from './Shape';
 
@@ -31,6 +31,14 @@ export interface PolygonColliderOptions {
  */
 export class PolygonCollider extends Collider {
   private _logger = Logger.getInstance();
+  private static _scratch = new Pool<Vector>(() => new Vector(0, 0), (v) => {v.setTo(0, 0); return v}, 100);
+  private static _scratchBounds = new Pool<BoundingBox>(() => new BoundingBox(), (b) => {
+    b.left = 0;
+    b.right = 0;
+    b.top = 0;
+    b.bottom = 0;
+    return b;
+  }, 100);
   /**
    * Pixel offset relative to a collider's body transform position.
    */
@@ -268,15 +276,23 @@ export class PolygonCollider extends Collider {
   private _calculateTransformation() {
     const transform = this._transform as TransformComponent;
 
-    const pos = transform ? transform.globalPos.add(this.offset) : this.offset;
+    const scratchPos = PolygonCollider._scratch.get();
+    const scratchScale = PolygonCollider._scratch.get();
+
+    const pos = transform ? scratchPos.copy(transform.globalPos).addEqual(this.offset) : scratchPos.copy(this.offset);
     const angle = transform ? transform.globalRotation : 0;
-    const scale = transform ? transform.globalScale : Vector.One;
+    const scale = transform ? scratchScale.copy(transform.globalScale) : scratchScale.setTo(1, 1);
 
     const len = this.points.length;
     this._transformedPoints.length = 0; // clear out old transform
     for (let i = 0; i < len; i++) {
-      this._transformedPoints[i] = this.points[i].scale(scale).rotate(angle).add(pos);
+      const point = PolygonCollider._scratch.get().copy(this.points[i]);
+      point.scaleEqual(scale);
+      point.rotateEqual(angle);
+      point.addEqual(pos);
+      this._transformedPoints[i] = point.clone();//this.points[i].scale(scale).rotate(angle).add(pos);
     }
+    PolygonCollider._scratch.done();
   }
 
   /**
@@ -392,18 +408,28 @@ export class PolygonCollider extends Collider {
   public contains(point: Vector): boolean {
     // Always cast to the right, as long as we cast in a consistent fixed direction we
     // will be fine
-    const testRay = new Ray(point, new Vector(1, 0));
-    const intersectCount = this.getSides().reduce(function (accum, side) {
-      if (testRay.intersect(side) >= 0) {
-        return accum + 1;
+    const testRay = new Ray(point, PolygonCollider._scratch.get().setTo(1, 0));
+    const sides = this.getSides();
+    let intersectCount = 0;
+    for (let i = 0; i < sides.length; i++) {
+      if (testRay.intersect(sides[i]) >= 0) {
+        intersectCount++;
       }
-      return accum;
-    }, 0);
-
-    if (intersectCount % 2 === 0) {
-      return false;
     }
-    return true;
+    PolygonCollider._scratch.done();
+    return !(intersectCount % 2 === 0)
+
+    // const intersectCount = this.getSides().reduce(function (accum, side) {
+    //   if (testRay.intersect(side) >= 0) {
+    //     return accum + 1;
+    //   }
+    //   return accum;
+    // }, 0);
+
+    // if (intersectCount % 2 === 0) {
+    //   return false;
+    // }
+    // return true;
   }
 
   public getClosestLineBetween(collider: Collider): Line {
@@ -502,18 +528,37 @@ export class PolygonCollider extends Collider {
    * Get the axis aligned bounding box for the polygon collider in world coordinates
    */
   public get bounds(): BoundingBox {
+    // Next
+    const scaleScratch = PolygonCollider._scratch.get();
+    const posScratch = PolygonCollider._scratch.get();
+
     const tx = this._transform as TransformComponent;
-    const scale = tx?.globalScale ?? Vector.One;
+    const scale = scaleScratch.copy(tx?.globalScale ?? scaleScratch.setTo(1, 1));
     const rotation = tx?.globalRotation ?? 0;
-    const pos = (tx?.globalPos ?? Vector.Zero).add(this.offset);
-    return this.localBounds.scale(scale).rotate(rotation).translate(pos);
+    const pos = posScratch.copy(tx?.globalPos ?? Vector.Zero).addEqual(this.offset);
+
+    const boundsScratch = PolygonCollider._scratchBounds.get();
+    boundsScratch.copy(this.localBounds);
+
+    boundsScratch.scaleEqual(scale);
+    boundsScratch.rotateEqual(rotation);
+    boundsScratch.translateEqual(pos);
+
+    const bounds = boundsScratch.clone();
+    PolygonCollider._scratch.done();
+    PolygonCollider._scratchBounds.done();
+    return bounds; //this.localBounds.scale(scale).rotate(rotation).translate(pos);
   }
 
+  _localBounds: BoundingBox;
   /**
    * Get the axis aligned bounding box for the polygon collider in local coordinates
    */
   public get localBounds(): BoundingBox {
-    return BoundingBox.fromPoints(this.points);
+    if (this._localBounds) {
+      return this._localBounds;
+    }
+    return this._localBounds = BoundingBox.fromPoints(this.points);
   }
 
   /**

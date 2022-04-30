@@ -5,6 +5,7 @@ import { Clonable } from '../Interfaces/Clonable';
  */
 
 export class Vector implements Clonable<Vector> {
+  public static constructed = 0;
   /**
    * A (0, 0) vector
    */
@@ -101,6 +102,7 @@ export class Vector implements Clonable<Vector> {
    * @param y  Y component of the Vector
    */
   constructor(x: number, y: number) {
+    Vector.constructed++;
     this._x = x;
     this._y = y;
   }
@@ -145,6 +147,7 @@ export class Vector implements Clonable<Vector> {
   setTo(x: number, y: number) {
     (this.x as number) = x;
     (this.y as number) = y;
+    return this;
   }
 
   /**
@@ -264,8 +267,14 @@ export class Vector implements Clonable<Vector> {
    * Scales this vector by a factor of size and modifies the original
    * @warning Be very careful using this, mutating vectors can cause hard to find bugs
    */
-  public scaleEqual(size: number): Vector {
-    this.setTo(this.x * size, this.y * size);
+  public scaleEqual(scale: Vector): Vector;
+  public scaleEqual(size: number): Vector;
+  public scaleEqual(size: number | Vector): Vector {
+    if (size instanceof Vector) { 
+      this.setTo(this.x * size.x, this.y * size.y);
+    } else {
+      this.setTo(this.x * size, this.y * size);
+    }
     return this;
   }
 
@@ -340,6 +349,23 @@ export class Vector implements Clonable<Vector> {
     const x = cosAngle * (this.x - anchor.x) - sinAngle * (this.y - anchor.y) + anchor.x;
     const y = sinAngle * (this.x - anchor.x) + cosAngle * (this.y - anchor.y) + anchor.y;
     return new Vector(x, y);
+  }
+
+  public rotateEqual(angle: number, anchor?: Vector): Vector {
+    if (!anchor) {
+      anchor = new Vector(0, 0);
+    }
+    const sinAngle = Math.sin(angle);
+    const cosAngle = Math.cos(angle);
+    const x = cosAngle * (this.x - anchor.x) - sinAngle * (this.y - anchor.y) + anchor.x;
+    const y = sinAngle * (this.x - anchor.x) + cosAngle * (this.y - anchor.y) + anchor.y;
+    return this.setTo(x, y);
+  }
+
+  public copy(source: Vector): Vector {
+    this._x = source.x;
+    this._y = source.y;
+    return this;
   }
 
   /**

@@ -45,7 +45,7 @@ var game = new ex.Engine({
   height: 600 / 2,
   viewport: { width: 800, height: 600 },
   canvasElementId: 'game',
-  pixelRatio: 4,
+  // pixelRatio: 4,
   suppressPlayButton: true,
   pointerScope: ex.Input.PointerScope.Canvas,
   displayMode: ex.DisplayMode.FitScreen,

@@ -44,6 +44,14 @@ export class BoundingBox {
     }
   }
 
+  public copy(source: BoundingBox) {
+    this.top = source.top;
+    this.right = source.right;
+    this.bottom = source.bottom;
+    this.left = source.left;
+    return this;
+  }
+
   /**
    * Returns a new instance of [[BoundingBox]] that is a copy of the current instance
    */
@@ -138,11 +146,24 @@ export class BoundingBox {
     return new BoundingBox(this.left + pos.x, this.top + pos.y, this.right + pos.x, this.bottom + pos.y);
   }
 
+  public translateEqual(pos: Vector): BoundingBox {
+    this.left = this.left + pos.x;
+    this.top = this.top + pos.y;
+    this.right = this.right + pos.x;
+    this.bottom = this.bottom + pos.y;
+    return this;
+  }
+
   /**
    * Rotates a bounding box by and angle and around a point, if no point is specified (0, 0) is used by default. The resulting bounding
    * box is also axis-align. This is useful when a new axis-aligned bounding box is needed for rotated geometry.
    */
   public rotate(angle: number, point: Vector = Vector.Zero): BoundingBox {
+    const points = this.getPoints().map((p) => p.rotate(angle, point));
+    return BoundingBox.fromPoints(points);
+  }
+
+  public rotateEqual(angle: number, point: Vector = Vector.Zero): BoundingBox {
     const points = this.getPoints().map((p) => p.rotate(angle, point));
     return BoundingBox.fromPoints(points);
   }
@@ -155,6 +176,14 @@ export class BoundingBox {
   public scale(scale: Vector, point: Vector = Vector.Zero): BoundingBox {
     const shifted = this.translate(point);
     return new BoundingBox(shifted.left * scale.x, shifted.top * scale.y, shifted.right * scale.x, shifted.bottom * scale.y);
+  }
+
+  public scaleEqual(scale: Vector, point: Vector = Vector.Zero): BoundingBox {
+    this.left = (this.left + point.x) * scale.x;
+    this.top = (this.top + point.y) * scale.y;
+    this.right = (this.right + point.x) * scale.x;
+    this.bottom = (this.bottom + point.y) * scale.y;
+    return this;
   }
 
   /**
