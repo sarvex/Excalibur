@@ -95,7 +95,7 @@ export class ExcaliburGraphicsContextWebGL implements ExcaliburGraphicsContext {
       instance.renderer = undefined;
       instance.args = undefined;
       return instance;
-    });
+    }, 4000);
   private _drawCalls: DrawCall[] = [];
 
   // Main render target
@@ -184,6 +184,7 @@ export class ExcaliburGraphicsContextWebGL implements ExcaliburGraphicsContext {
     this.backgroundColor = backgroundColor ?? this.backgroundColor;
     this.useDrawSorting = useDrawSorting ?? this.useDrawSorting;
     this._drawCallPool.disableWarnings = true;
+    this._drawCallPool.preallocate();
     this._init();
   }
 

@@ -16,6 +16,7 @@ import { CompositeCollider } from '../Collision/Colliders/CompositeCollider';
 import { Color } from '../Color';
 import { DebugGraphicsComponent } from '../Graphics/DebugGraphicsComponent';
 import { Collider } from '../Collision/Colliders/Collider';
+import { Observable } from '../Util/Observable';
 
 export interface TileMapOptions {
   /**
@@ -75,6 +76,8 @@ export class TileMap extends Entity {
   private _graphics: GraphicsComponent;
   private _collider: ColliderComponent;
   private _composite: CompositeCollider;
+
+  public posChanged$ = new Observable<Vector>();
 
   public get x(): number {
     return this._transform.pos.x ?? 0;
@@ -178,7 +181,7 @@ export class TileMap extends Entity {
     this._composite = this._collider.useCompositeCollider([]);
 
     this._transform.pos = options.pos ?? Vector.Zero;
-    this._transform.posChanged$.subscribe(() => this.flagCollidersDirty());
+    // this._transform.posChanged$.subscribe(() => this.flagCollidersDirty());
     this.tileWidth = options.tileWidth;
     this.tileHeight = options.tileHeight;
     this.rows = options.rows;
@@ -330,13 +333,21 @@ export class TileMap extends Entity {
     return this._cols;
   }
 
+  private _oldPos = this.pos.clone();
   public update(engine: Engine, delta: number) {
     this.onPreUpdate(engine, delta);
     this.emit('preupdate', new Events.PreUpdateEvent(engine, delta, this));
+    if (!this._oldPos.equals(this.pos)){
+      this.flagCollidersDirty();
+      this.posChanged$.notifyAll(this.pos);
+      this._oldPos = this.pos.clone();
+    }
+
     if (this._collidersDirty) {
       this._collidersDirty = false;
       this._updateColliders();
     }
+    
 
     this._token++;
     const worldBounds = engine.getWorldBounds();
@@ -453,7 +464,6 @@ export class Tile extends Entity {
   private _bounds: BoundingBox;
   private _pos: Vector;
   private _posDirty = false;
-  private _transform: TransformComponent;
 
   /**
    * Return the world position of the top left corner of the tile
@@ -597,8 +607,7 @@ export class Tile extends Entity {
     this.solid = options.solid ?? this.solid;
     this._graphics = options.graphics ?? [];
     this._recalculate();
-    this._transform = options.map.get(TransformComponent);
-    this._transform.posChanged$.subscribe(() => {
+    options.map.posChanged$.subscribe(() => {
       this._posDirty = true;
     });
   }

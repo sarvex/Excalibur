@@ -392,7 +392,11 @@ export class Matrix {
     return this;
   }
 
+  private _rotation = 0;
   public setRotation(angle: number) {
+    if (this._rotation === angle) {
+      return;
+    }
     const currentScale = this.getScale();
     const sine = Math.sin(angle);
     const cosine = Math.cos(angle);
@@ -401,23 +405,33 @@ export class Matrix {
     this.data[1] = sine * currentScale.y;
     this.data[4] = -sine * currentScale.x;
     this.data[5] = cosine * currentScale.y;
+    this._rotation = canonicalizeAngle(angle);
   }
 
   public getRotation(): number {
-    const angle = Math.atan2(this.data[1] / this.getScaleY(), this.data[0] / this.getScaleX());
-    return canonicalizeAngle(angle);
+    return this._rotation;
+    // const angle = Math.atan2(this.data[1] / this.getScaleY(), this.data[0] / this.getScaleX());
+    // return canonicalizeAngle(angle);
   }
 
+  private _xScaleDirty = false;
   public getScaleX(): number {
-    // absolute scale of the matrix (we lose sign so need to add it back)
-    const xscale = vec(this.data[0], this.data[4]).size;
-    return this._scaleSignX * xscale;
+    if (this._xScaleDirty) {
+      // absolute scale of the matrix (we lose sign so need to add it back)
+      const xscale = vec(this.data[0], this.data[4]).size;
+      return this._scaleX = this._scaleSignX * xscale;
+    }
+    return this._scaleX;
   }
 
+  private _yScaleDirty = false;
   public getScaleY(): number {
-    // absolute scale of the matrix (we lose sign so need to add it back)
-    const yscale = vec(this.data[1], this.data[5]).size;
-    return this._scaleSignY * yscale;
+    if (this._yScaleDirty) {
+      // absolute scale of the matrix (we lose sign so need to add it back)
+      const yscale = vec(this.data[1], this.data[5]).size;
+      return this._scaleY = this._scaleSignY * yscale;
+    }
+    return this._scaleY;
   }
 
   /**
@@ -427,22 +441,34 @@ export class Matrix {
     return vec(this.getScaleX(), this.getScaleY());
   }
 
+  private _scaleX = 1;
   private _scaleSignX = 1;
   public setScaleX(val: number) {
+    if (val === this._scaleX) {
+      return;
+    }
     this._scaleSignX = sign(val);
     // negative scale acts like a 180 rotation, so flip
     const xscale = vec(this.data[0] * this._scaleSignX, this.data[4] * this._scaleSignX).normalize();
     this.data[0] = xscale.x * val;
     this.data[4] = xscale.y * val;
+    this._scaleX = val;
+    this._xScaleDirty = true;
   }
 
+  private _scaleY = 1;
   private _scaleSignY = 1;
   public setScaleY(val: number) {
+    if (val === this._scaleY) {
+      return;
+    }
     this._scaleSignY = sign(val);
     // negative scale acts like a 180 rotation, so flip
     const yscale = vec(this.data[1] * this._scaleSignY, this.data[5] * this._scaleSignY).normalize();
     this.data[1] = yscale.x * val;
     this.data[5] = yscale.y * val;
+    this._scaleY = val;
+    this._yScaleDirty = true;
   }
 
   public setScale(scale: Vector) {
