@@ -53,10 +53,12 @@ export class WebAudio {
             if (isLegacyWebAudioSource(source)) {
               if (source.playbackState === source.PLAYING_STATE || source.playbackState === source.FINISHED_STATE) {
                 WebAudio._UNLOCKED = true;
+                console.log('Audio Unlocked');
               }
             } else {
               if (audioContext.currentTime > 0 || ended) {
                 WebAudio._UNLOCKED = true;
+                console.log('Audio Unlocked');
               }
             }
           }, 0);

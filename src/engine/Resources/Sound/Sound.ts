@@ -92,7 +92,7 @@ export class Sound extends Class implements Audio, Loadable<AudioBuffer> {
   private _engine: Engine;
   private _wasPlayingOnHidden: boolean = false;
   private _playbackRate = 1.0;
-  private _audioContext = AudioContextFactory.create();
+  private _audioContext: AudioContext | null = null;
 
   /**
    * @param paths A list of audio sources (clip.wav, clip.mp3, clip.ogg) for this audio clip. This is done for browser compatibility.
@@ -135,9 +135,17 @@ export class Sound extends Class implements Audio, Loadable<AudioBuffer> {
     return this.data = audiobuffer;
   }
 
+  private async lazyLoadAudioContext(): Promise<AudioContext> {
+    if (!this._audioContext) {
+      this._audioContext = await AudioContextFactory.getAudioContextAsync();
+    }
+    return this._audioContext;
+  }
+
   public async decodeAudio(data: ArrayBuffer): Promise<AudioBuffer> {
     try {
-      return await this._audioContext.decodeAudioData(data.slice(0));
+      const audioContext = await this.lazyLoadAudioContext();
+      return await audioContext.decodeAudioData(data.slice(0));
     } catch (e) {
       this.logger.error(
         'Unable to decode ' +

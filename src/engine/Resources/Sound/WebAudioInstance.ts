@@ -14,12 +14,24 @@ interface SoundState {
  */
 export class WebAudioInstance implements Audio {
   private _instance: AudioBufferSourceNode;
-  private _audioContext: AudioContext = AudioContextFactory.create();
-  private _volumeNode = this._audioContext.createGain();
+  private _audioContext: AudioContext | null = null;
+  private _volumeNode: GainNode | null = null;
   private _playingResolve: (value: boolean) => void;
   private _playingPromise = new Promise<boolean>((resolve) => {
     this._playingResolve = resolve;
   });
+  private async lazyLoadAudioContext(): Promise<AudioContext> {
+    if (!this._audioContext) {
+      this._audioContext = await AudioContextFactory.getAudioContextAsync();
+    }
+    return this._audioContext;
+  }
+
+  private async createGain() {
+    const ctx = await this.lazyLoadAudioContext();
+    return ctx.createGain();
+  }
+
   private _stateMachine = StateMachine.create({
     start: 'STOPPED',
     states: {
